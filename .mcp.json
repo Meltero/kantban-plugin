@@ -1,0 +1,10 @@
+{
+  "kantban": {
+    "command": "npx",
+    "args": ["-y", "kantban-mcp"],
+    "env": {
+      "KANTBAN_API_TOKEN": "${KANTBAN_API_TOKEN}",
+      "KANTBAN_API_URL": "${KANTBAN_API_URL}"
+    }
+  }
+}
