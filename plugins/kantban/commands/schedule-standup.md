@@ -35,16 +35,19 @@ Call `CronCreate` with:
   - `projectId` — resolved in step 1
   - `boardId` — resolved in step 1
 
-### 4. Confirm and warn about session scope
+### 4. Confirm and warn about session lifetime
 
 After creating the cron, confirm:
-> "Standup scheduled for weekdays at [time]. I'll post a summary each morning."
+> "Standup scheduled for weekdays at [time]. I'll post a summary each morning while this session is open."
 
-**Always include this warning:**
-> "Note: this cron runs in the current terminal session. If you close this terminal, the scheduled job will stop. For persistent scheduling that survives restarts, use Claude Desktop's scheduled tasks feature instead."
+**Always include this warning (do not paraphrase — the user must understand exactly what they're getting):**
+> **Session-only schedule:** This cron runs inside this Claude Code terminal session. It will fire on schedule as long as this terminal stays open. When you close the terminal (or it disconnects), the schedule is gone — no catch-up runs, no persistence. You'll need to re-run `/schedule-standup` next session.
+>
+> For schedules that survive restarts, use **Claude Desktop's scheduled tasks** instead — see the "Desktop Scheduled Task Recipes" section in the plugin README for copy-paste prompts.
 
 ## Notes
 
-- Crons are session-scoped — they live only as long as this Claude Code session is running.
-- Use `/unschedule` to cancel this or any other KantBan cron.
-- For health check scheduling, use `/schedule-health`.
+- This is an in-session timer, not a background service. If the scheduled time passes while the terminal is closed, the run is silently skipped.
+- You must re-schedule each time you start a new Claude Code session. There is no saved state between sessions.
+- Use `/unschedule` to cancel this or any other KantBan cron in the current session.
+- For health check scheduling, use `/schedule-health`. For playbook scheduling, use `/schedule-playbook`.

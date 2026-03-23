@@ -187,15 +187,21 @@ KantBan workflows benefit from recurring automation. When a user wants something
 | Health check | `3 */4 * * *` | Every 4 hours |
 | Backlog grooming | `3 14 * * 1-5` | Weekdays at 2:03 PM |
 | Weekly retro | `7 16 * * 5` | Fridays at 4:07 PM |
+| Scheduled playbook | *(user-defined)* | Any playbook on a custom cron |
 
 **Rules:**
 - Never schedule on :00 or :30 — these are high-traffic times across all scheduled tasks.
 - Offset by 3-7 minutes from round hours or half-hours.
-- Session-scoped crons die when the terminal closes. Warn the user if they expect persistence.
-- For persistent scheduling across sessions, suggest Claude Code Desktop's scheduled tasks feature.
+
+**Session lifetime — be explicit with users:**
+- Crons created via `CronCreate` are in-session timers, not background services. They only fire while the terminal stays open.
+- If the terminal closes or disconnects, all schedules are lost. Missed runs are silently skipped — no catch-up, no retry.
+- Users must re-schedule each time they start a new Claude Code session.
+- Always deliver the full session-lifetime warning (see each `/schedule-*` command for exact wording). Do not soften or abbreviate it.
+- For persistent scheduling across sessions, direct users to **Claude Desktop's scheduled tasks** and the "Desktop Scheduled Task Recipes" in the plugin README.
 
 **Offering to schedule:**
-When the user runs a standup or health check manually, offer: "Want me to schedule this to run automatically?" Give the default cron and let them adjust.
+When the user runs a standup, health check, or playbook manually, offer: "Want me to schedule this to run automatically while this session is open?" Give the default cron and let them adjust.
 
 ---
 
@@ -225,6 +231,7 @@ These slash commands are built into this skill:
 | `/board-health` | Deep board analysis — detects bottlenecks, WIP issues, stale tickets |
 | `/schedule-standup` | Set up a recurring daily standup report |
 | `/schedule-health` | Set up recurring board health checks |
+| `/schedule-playbook` | Schedule any playbook to run on a recurring cron |
 | `/unschedule` | List and cancel active KantBan scheduled jobs |
 
 Commands trigger the corresponding flows described in this skill. For example, `/plan-feature` starts the planning flow from section 6. `/board-health` reads `kanban://project/{id}/health` and calls `kantban_detect_bottlenecks` if deep analysis is needed.

@@ -152,3 +152,29 @@ Offer a playbook when the user's request maps to one:
 How to offer: "I can run the `start-sprint` playbook — it'll set WIP limits, pull 10 tickets from the backlog, and archive last sprint's Done tickets. Want to preview it first?"
 
 If the user says yes, run with `dryRun: true` and show the plan.
+
+---
+
+## Scheduling Playbooks
+
+Playbooks can be scheduled to run automatically on a cron schedule using the `/schedule-playbook` command.
+
+**How it works:**
+1. User invokes `/schedule-playbook` with an optional playbook name and schedule.
+2. Claude discovers available playbooks and collects parameters.
+3. A `CronCreate` job is created that invokes the `run-playbook` MCP prompt on the specified schedule.
+4. Each cron invocation runs the playbook with the pre-configured parameters.
+
+**Example usage:**
+- `/schedule-playbook close-sprint every friday` — close the sprint every Friday
+- `/schedule-playbook start-sprint every monday 9am` — start a new sprint every Monday morning
+- `/schedule-playbook` — interactive: choose playbook and schedule
+
+**Important notes:**
+- Scheduled runs execute live (not dry-run) since the user confirmed parameters at scheduling time.
+- Use `/unschedule` to view or cancel scheduled playbooks in the current session.
+
+**Session lifetime:** These crons are in-session timers — they only fire while the terminal is open. When the terminal closes, they're gone with no catch-up. Users must re-schedule each session. For persistent automation, direct users to **Claude Desktop's scheduled tasks** and the "Desktop Scheduled Task Recipes" in the plugin README.
+
+**When to suggest scheduling:**
+When a user runs a playbook manually and the workflow is inherently recurring (sprint ceremonies, release prep), offer: "Want me to schedule this playbook to run automatically? Use `/schedule-playbook`."

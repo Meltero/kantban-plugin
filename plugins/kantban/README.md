@@ -8,7 +8,7 @@ Turn your kanban board into Claude's external memory.
 - **5 resources** — dashboard, board snapshot, next tasks, project health, recent activity
 - **6 prompts** — plan-feature, daily-standup, groom-backlog, link-github, sprint-forecast, run-playbook
 - **Skill with work loop & nudges** — an ambient assistant that surfaces what to work on next and reminds you of blocked tickets
-- **Commands** — `/plan-feature`, `/whats-next`, `/board-health`, `/schedule-standup`, `/schedule-health`, `/unschedule` built-in slash commands
+- **Commands** — `/plan-feature`, `/whats-next`, `/board-health`, `/schedule-standup`, `/schedule-health`, `/schedule-playbook`, `/unschedule` built-in slash commands
 - **Board-analyst agent** — autonomous agent that detects bottlenecks, flags overdue work, and drafts sprint summaries
 - **SessionStart hook** — automatically loads board context at the start of every Claude session
 - **Scheduled task recipes** — cron-style recipes for standups, reconciliation, and health checks
@@ -18,7 +18,7 @@ Turn your kanban board into Claude's external memory.
 ### Plugin Marketplace
 
 ```
-/plugin marketplace add kantban/kantban-plugin
+/plugin marketplace add Meltero/kantban-plugin
 /plugin install kantban
 ```
 
@@ -61,6 +61,7 @@ For CLAUDE.md overrides (custom personas, tool allow-lists, tone settings), see 
 | `/board-health` | Deep analysis of board health with actionable suggestions |
 | `/schedule-standup` | Set up a recurring daily standup report via CronCreate |
 | `/schedule-health` | Set up recurring board health checks via CronCreate |
+| `/schedule-playbook` | Schedule any playbook to run on a recurring cron |
 | `/unschedule` | List and cancel KantBan-related scheduled jobs |
 
 ## Desktop Scheduled Task Recipes

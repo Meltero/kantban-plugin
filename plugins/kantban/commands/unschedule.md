@@ -15,7 +15,7 @@ Call `CronList` to retrieve all currently scheduled jobs in this session.
 ### 2. Filter to KantBan-related jobs
 
 From the results, identify jobs that are KantBan-related. A job is KantBan-related if it meets any of these criteria:
-- The prompt or tool name starts with `kantban_` or `daily-standup` or `board-analyst`
+- The prompt or tool name starts with `kantban_` or `daily-standup` or `board-analyst` or `run-playbook`
 - The inputs include a `projectId` or `boardId` field
 - The description references KantBan, kanban, standup, or board health
 
@@ -34,6 +34,11 @@ Active KantBan scheduled jobs:
 2. Board Health Check
    Schedule: 3 */4 * * * (every 4 hours)
    Project: My Project / Sprint 3
+   ID: <cron-id>
+
+3. Playbook: close-sprint
+   Schedule: 7 16 * * 5 (Fridays at 16:07)
+   Project: My Project
    ID: <cron-id>
 ```
 
@@ -61,5 +66,5 @@ Or if nothing was cancelled:
 ## Notes
 
 - Only jobs in the current session are listed — crons from previous sessions are not recoverable.
-- To reschedule after cancelling, use `/schedule-standup` or `/schedule-health`.
+- To reschedule after cancelling, use `/schedule-standup`, `/schedule-health`, or `/schedule-playbook`.
 - Non-KantBan crons in the session are shown in the raw `CronList` output but are not acted on unless the user explicitly requests it.
