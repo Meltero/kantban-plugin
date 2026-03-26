@@ -53,7 +53,7 @@ When a resource doesn't have enough detail, reach for a compound tool before ass
 | `kantban_plan_to_tickets` | User describes a feature to build |
 | `kantban_start_working_on` | User picks up a task |
 | `kantban_complete_task` | User finishes a task |
-| `kantban_suggest_next_task` | User asks what to do next |
+| `kanban://project/{id}/my-next-tasks` | User asks what to do next (read resource) |
 | `kantban_detect_bottlenecks` | Diagnosing flow problems |
 | `kantban_get_ticket_context` | Loading full context for a single ticket |
 | `kantban_get_project_dashboard` | Structured project status summary |
@@ -82,7 +82,7 @@ This is the core rhythm of using KantBan with Claude. Follow it every session.
 suggest → start → work → complete → suggest → ...
 ```
 
-1. **Suggest** — Call `kantban_suggest_next_task` (or read `kanban://project/{id}/my-next-tasks`). Surface the top recommendation with a one-sentence justification.
+1. **Suggest** — Read the `kanban://project/{id}/my-next-tasks` resource. Surface the top recommendation with a one-sentence justification.
 2. **Start** — When the user accepts, call `kantban_start_working_on`. This moves the ticket to In Progress and loads its context.
 3. **Work** — Do the actual work. Keep the ticket context in mind; update it if scope changes.
 4. **Complete** — When the user says they're done, call `kantban_complete_task`. This moves the ticket to Done and records metrics (cycle time, completion timestamp).
@@ -255,10 +255,10 @@ All tools are prefixed with `kantban:` when scoped to this MCP server.
 `kantban_search`, `kantban_list_spaces`, `kantban_delete_space`, `kantban_list_projects`, `kantban_delete_project`, `kantban_list_project_members`, `kantban_search_users`, `kantban_list_notifications`, `kantban_mark_notification_read`, `kantban_mark_all_notifications_read`, `kantban_list_attachments`, `kantban_find_references`
 
 **Compound & Intelligence**
-`kantban_plan_to_tickets`, `kantban_start_working_on`, `kantban_complete_task`, `kantban_search_documents_chunked`, `kantban_suggest_next_task`, `kantban_get_project_dashboard`, `kantban_detect_bottlenecks`, `kantban_get_ticket_context`, `kantban_get_ai_activity`, `kantban_get_activity_feed`
+`kantban_plan_to_tickets`, `kantban_start_working_on`, `kantban_complete_task`, `kantban_search_documents_chunked`, `kantban_get_project_dashboard`, `kantban_detect_bottlenecks`, `kantban_get_ticket_context`, `kantban_get_ai_activity`, `kantban_get_activity_feed`
 
 **Analytics**
-`kantban_get_velocity`, `kantban_forecast_completion`, `kantban_estimate_ticket`, `kantban_retrospective_insights`
+`kantban_get_velocity`, `kantban_forecast_completion`, `kantban_retrospective_insights`
 
 **GitHub**
 `kantban_detect_current_ticket`, `kantban_link_github_reference`, `kantban_list_github_references`, `kantban_sync_github_references`

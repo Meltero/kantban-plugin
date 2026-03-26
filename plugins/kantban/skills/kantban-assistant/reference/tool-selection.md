@@ -54,7 +54,7 @@ Does the user just want one ticket created?
 Read kanban://project/{projectId}/my-next-tasks first
   → Does it have a clear top recommendation?
     → Yes: present it with a brief justification
-    → No (empty or unclear): call kantban_suggest_next_task
+    → No (empty or unclear): call kantban_detect_bottlenecks for context
 
 User picks a task:
   → kantban_start_working_on
@@ -62,7 +62,7 @@ User picks a task:
   → Begin work
 
 User wants more options:
-  → kantban_suggest_next_task (returns ranked list)
+  → Read kanban://project/{id}/my-next-tasks (returns ranked list)
   → Present top 3 with justifications
 ```
 
