@@ -50,4 +50,4 @@ After creating the cron, confirm:
 - This is an in-session timer, not a background service. If the scheduled time passes while the terminal is closed, the run is silently skipped.
 - You must re-schedule each time you start a new Claude Code session. There is no saved state between sessions.
 - Use `/unschedule` to cancel this or any other KantBan cron in the current session.
-- For health check scheduling, use `/schedule-health`. For playbook scheduling, use `/schedule-playbook`.
+- For health check scheduling, use `/schedule-health`. For pipeline template scheduling, use `/schedule-template`.

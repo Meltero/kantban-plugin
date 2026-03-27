@@ -127,7 +127,7 @@ async function main() {
 
   // Available commands
   lines.push('');
-  lines.push('Commands: /plan-feature · /whats-next · /board-health · /schedule-standup · /schedule-health · /schedule-playbook');
+  lines.push('Commands: /plan-feature · /whats-next · /board-health · /schedule-standup · /schedule-health · /schedule-template');
 
   // Auto-standup notice
   if (process.env.KANTBAN_AUTO_STANDUP === 'true') {

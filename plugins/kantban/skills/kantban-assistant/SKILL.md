@@ -187,7 +187,7 @@ KantBan workflows benefit from recurring automation. When a user wants something
 | Health check | `3 */4 * * *` | Every 4 hours |
 | Backlog grooming | `3 14 * * 1-5` | Weekdays at 2:03 PM |
 | Weekly retro | `7 16 * * 5` | Fridays at 4:07 PM |
-| Scheduled playbook | *(user-defined)* | Any playbook on a custom cron |
+| Scheduled pipeline template | *(user-defined)* | Any pipeline template on a custom cron |
 
 **Rules:**
 - Never schedule on :00 or :30 — these are high-traffic times across all scheduled tasks.
@@ -201,7 +201,7 @@ KantBan workflows benefit from recurring automation. When a user wants something
 - For persistent scheduling across sessions, direct users to **Claude Desktop's scheduled tasks** and the "Desktop Scheduled Task Recipes" in the plugin README.
 
 **Offering to schedule:**
-When the user runs a standup, health check, or playbook manually, offer: "Want me to schedule this to run automatically while this session is open?" Give the default cron and let them adjust.
+When the user runs a standup, health check, or pipeline template manually, offer: "Want me to schedule this to run automatically while this session is open?" Give the default cron and let them adjust.
 
 ---
 
@@ -231,7 +231,7 @@ These slash commands are built into this skill:
 | `/board-health` | Deep board analysis — detects bottlenecks, WIP issues, stale tickets |
 | `/schedule-standup` | Set up a recurring daily standup report |
 | `/schedule-health` | Set up recurring board health checks |
-| `/schedule-playbook` | Schedule any playbook to run on a recurring cron |
+| `/schedule-template` | Schedule any pipeline template to run on a recurring cron |
 | `/unschedule` | List and cancel active KantBan scheduled jobs |
 
 Commands trigger the corresponding flows described in this skill. For example, `/plan-feature` starts the planning flow from section 6. `/board-health` reads `kanban://project/{id}/health` and calls `kantban_detect_bottlenecks` if deep analysis is needed.
@@ -266,12 +266,12 @@ All tools are prefixed with `kantban:` when scoped to this MCP server.
 **Workflow**
 `kantban_list_transition_rules`, `kantban_set_transition_rules`, `kantban_delete_transition_rule`, `kantban_list_transition_requirements`, `kantban_set_transition_requirements`, `kantban_delete_transition_requirement`, `kantban_check_transition`
 
-**Playbooks**
-`kantban_list_playbooks`, `kantban_get_playbook`, `kantban_create_playbook`, `kantban_update_playbook`, `kantban_delete_playbook`, `kantban_run_playbook`, `kantban_add_playbook_step`, `kantban_update_playbook_step`, `kantban_remove_playbook_step`, `kantban_reorder_playbook_steps`
+**Pipeline Templates**
+`kantban_list_pipeline_templates`, `kantban_get_pipeline_template`, `kantban_create_pipeline_template`, `kantban_update_pipeline_template`, `kantban_delete_pipeline_template`, `kantban_run_pipeline_template`, `kantban_add_template_step`, `kantban_update_template_step`, `kantban_remove_template_step`, `kantban_reorder_template_steps`
 
 **5 Resources:** `kanban://my/dashboard`, `kanban://project/{projectId}/board/{boardId}/snapshot`, `kanban://project/{projectId}/my-next-tasks`, `kanban://project/{projectId}/health`, `kanban://project/{projectId}/recent-activity`
 
-**6 Prompts:** `plan-feature`, `daily-standup`, `groom-backlog`, `link-github`, `sprint-forecast`, `run-playbook`
+**6 Prompts:** `plan-feature`, `daily-standup`, `groom-backlog`, `link-github`, `sprint-forecast`, `run-pipeline-template`
 
 ---
 
@@ -285,7 +285,7 @@ Detailed guidance lives in the reference files:
 | [reference/planning-workflow.md](reference/planning-workflow.md) | Step-by-step planning flow with examples and pitfalls |
 | [reference/kanban-metrics.md](reference/kanban-metrics.md) | WIP limits, cycle time, throughput, Monte Carlo forecasting |
 | [reference/github-integration.md](reference/github-integration.md) | Branch detection, PR linking, sync mechanism |
-| [reference/playbooks.md](reference/playbooks.md) | Built-in and user-defined playbooks, how to run them |
+| [reference/pipeline-templates.md](reference/pipeline-templates.md) | Built-in and user-defined pipeline templates, how to run them |
 | [reference/configuration.md](reference/configuration.md) | CLAUDE.md override knobs and environment variables |
 
 ---

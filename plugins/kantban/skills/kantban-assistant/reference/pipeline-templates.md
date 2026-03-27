@@ -1,20 +1,20 @@
-# Playbooks Reference
+# Pipeline Templates Reference
 
-Playbooks are reusable multi-step workflows that Claude can run on demand. They encode common processes — starting a sprint, responding to an incident, closing a sprint — into a repeatable sequence of tool calls.
+Pipeline templates are reusable multi-step workflows that Claude can run on demand. They encode common processes — starting a sprint, responding to an incident, closing a sprint — into a repeatable sequence of tool calls.
 
 ---
 
-## What Playbooks Are
+## What Pipeline Templates Are
 
-A playbook is a named sequence of actions that KantBan executes on a board. Each step can create, move, update, or archive tickets. Playbooks are:
+A pipeline template is a named sequence of actions that KantBan executes on a board. Each step can create, move, update, or archive tickets. Pipeline templates are:
 
-- **Reusable** — run the same playbook at the start of every sprint.
+- **Reusable** — run the same pipeline template at the start of every sprint.
 - **Previewable** — always run with `dryRun: true` first to see what will happen.
-- **Customizable** — built-in playbooks have parameters; user-defined playbooks can be arbitrarily complex.
+- **Customizable** — built-in pipeline templates have parameters; user-defined pipeline templates can be arbitrarily complex.
 
 ---
 
-## Built-In Playbooks
+## Built-In Pipeline Templates
 
 ### `start-sprint`
 
@@ -91,11 +91,11 @@ Prepares a release by gathering completed work and creating release notes.
 
 ---
 
-## Discovering Available Playbooks
+## Discovering Available Pipeline Templates
 
-**Tool:** `kantban_list_playbooks`
+**Tool:** `kantban_list_pipeline_templates`
 
-Returns all playbooks available for a given project — both built-in and user-defined. Always call this before suggesting a playbook, so you can confirm it's available and check its parameters.
+Returns all pipeline templates available for a given project — both built-in and user-defined. Always call this before suggesting a pipeline template, so you can confirm it's available and check its parameters.
 
 ```json
 {
@@ -105,15 +105,15 @@ Returns all playbooks available for a given project — both built-in and user-d
 
 ---
 
-## Running a Playbook
+## Running a Pipeline Template
 
-**Tool:** `kantban_run_playbook`
+**Tool:** `kantban_run_pipeline_template`
 
 **Always use `dryRun: true` first.** Show the user what will happen, then confirm before running.
 
 ```json
 {
-  "playbookId": "start-sprint",
+  "templateId": "start-sprint",
   "boardId": "uuid-here",
   "parameters": {
     "sprintName": "Sprint 14",
@@ -129,52 +129,52 @@ Show this to the user. When they confirm, re-run with `dryRun: false`.
 
 ---
 
-## User-Defined Playbooks
+## User-Defined Pipeline Templates
 
-Users can create custom playbooks through the KantBan UI or API. Claude should:
+Users can create custom pipeline templates through the KantBan UI or API. Claude should:
 
-1. Call `kantban_list_playbooks` to discover what's available.
-2. Never assume a playbook exists — always verify with the list call.
-3. If a user mentions a playbook by name that isn't in the list, say so and offer to help them create one or find the right built-in.
+1. Call `kantban_list_pipeline_templates` to discover what's available.
+2. Never assume a pipeline template exists — always verify with the list call.
+3. If a user mentions a pipeline template by name that isn't in the list, say so and offer to help them create one or find the right built-in.
 
-User-defined playbooks appear alongside built-in playbooks in the list response. They follow the same `dryRun` preview flow.
+User-defined pipeline templates appear alongside built-in pipeline templates in the list response. They follow the same `dryRun` preview flow.
 
 ---
 
-## Suggesting Playbooks
+## Suggesting Pipeline Templates
 
-Offer a playbook when the user's request maps to one:
+Offer a pipeline template when the user's request maps to one:
 
 - "Let's kick off the new sprint" → suggest `start-sprint`
 - "Production is down" → suggest `incident-response`
 - "Sprint's done, let's clean up" → suggest `close-sprint`
 
-How to offer: "I can run the `start-sprint` playbook — it'll set WIP limits, pull 10 tickets from the backlog, and archive last sprint's Done tickets. Want to preview it first?"
+How to offer: "I can run the `start-sprint` pipeline template — it'll set WIP limits, pull 10 tickets from the backlog, and archive last sprint's Done tickets. Want to preview it first?"
 
 If the user says yes, run with `dryRun: true` and show the plan.
 
 ---
 
-## Scheduling Playbooks
+## Scheduling Pipeline Templates
 
-Playbooks can be scheduled to run automatically on a cron schedule using the `/schedule-playbook` command.
+Pipeline templates can be scheduled to run automatically on a cron schedule using the `/schedule-template` command.
 
 **How it works:**
-1. User invokes `/schedule-playbook` with an optional playbook name and schedule.
-2. Claude discovers available playbooks and collects parameters.
-3. A `CronCreate` job is created that invokes the `run-playbook` MCP prompt on the specified schedule.
-4. Each cron invocation runs the playbook with the pre-configured parameters.
+1. User invokes `/schedule-template` with an optional pipeline template name and schedule.
+2. Claude discovers available pipeline templates and collects parameters.
+3. A `CronCreate` job is created that invokes the `run-pipeline-template` MCP prompt on the specified schedule.
+4. Each cron invocation runs the pipeline template with the pre-configured parameters.
 
 **Example usage:**
-- `/schedule-playbook close-sprint every friday` — close the sprint every Friday
-- `/schedule-playbook start-sprint every monday 9am` — start a new sprint every Monday morning
-- `/schedule-playbook` — interactive: choose playbook and schedule
+- `/schedule-template close-sprint every friday` — close the sprint every Friday
+- `/schedule-template start-sprint every monday 9am` — start a new sprint every Monday morning
+- `/schedule-template` — interactive: choose pipeline template and schedule
 
 **Important notes:**
 - Scheduled runs execute live (not dry-run) since the user confirmed parameters at scheduling time.
-- Use `/unschedule` to view or cancel scheduled playbooks in the current session.
+- Use `/unschedule` to view or cancel scheduled pipeline templates in the current session.
 
 **Session lifetime:** These crons are in-session timers — they only fire while the terminal is open. When the terminal closes, they're gone with no catch-up. Users must re-schedule each session. For persistent automation, direct users to **Claude Desktop's scheduled tasks** and the "Desktop Scheduled Task Recipes" in the plugin README.
 
 **When to suggest scheduling:**
-When a user runs a playbook manually and the workflow is inherently recurring (sprint ceremonies, release prep), offer: "Want me to schedule this playbook to run automatically? Use `/schedule-playbook`."
+When a user runs a pipeline template manually and the workflow is inherently recurring (sprint ceremonies, release prep), offer: "Want me to schedule this pipeline template to run automatically? Use `/schedule-template`."
