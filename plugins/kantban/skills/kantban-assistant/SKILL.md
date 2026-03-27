@@ -266,6 +266,9 @@ All tools are prefixed with `kantban:` when scoped to this MCP server.
 **Workflow**
 `kantban_list_transition_rules`, `kantban_set_transition_rules`, `kantban_delete_transition_rule`, `kantban_list_transition_requirements`, `kantban_set_transition_requirements`, `kantban_delete_transition_requirement`, `kantban_check_transition`
 
+**Firing Constraints**
+`kantban_list_firing_constraints`, `kantban_create_firing_constraint`, `kantban_update_firing_constraint`, `kantban_delete_firing_constraint`, `kantban_evaluate_firing_constraints`
+
 **Pipeline Templates**
 `kantban_list_pipeline_templates`, `kantban_get_pipeline_template`, `kantban_create_pipeline_template`, `kantban_update_pipeline_template`, `kantban_delete_pipeline_template`, `kantban_run_pipeline_template`, `kantban_add_template_step`, `kantban_update_template_step`, `kantban_remove_template_step`, `kantban_reorder_template_steps`
 
@@ -286,6 +289,8 @@ Detailed guidance lives in the reference files:
 | [reference/kanban-metrics.md](reference/kanban-metrics.md) | WIP limits, cycle time, throughput, Monte Carlo forecasting |
 | [reference/github-integration.md](reference/github-integration.md) | Branch detection, PR linking, sync mechanism |
 | [reference/pipeline-templates.md](reference/pipeline-templates.md) | Built-in and user-defined pipeline templates, how to run them |
+| [reference/firing-constraints.md](reference/firing-constraints.md) | Pre-fire gates on pipeline columns — subject types, operators, patterns, and MCP tools |
+| [reference/pipeline-cli.md](reference/pipeline-cli.md) | CLI orchestrator — installation (`kantban-cli` on npm), pipeline command, flags, constraint enforcement, lifecycle |
 | [reference/configuration.md](reference/configuration.md) | CLAUDE.md override knobs and environment variables |
 
 ---
