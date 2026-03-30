@@ -175,7 +175,50 @@ See [reference/planning-workflow.md](reference/planning-workflow.md) for detaile
 
 ---
 
-## 7. Scheduling
+## 7. Pipeline Configuration Checklist
+
+When a user is setting up or modifying a pipeline, surface these configuration layers. The pipeline provides primitives — the user decides how to use them. Claude's job is to ensure nothing is missed, not to prescribe values.
+
+### Required — pipeline will not function without these
+
+| Config | Where | Without it |
+|---|---|---|
+| `KANTBAN_API_URL` + `KANTBAN_API_TOKEN` | Environment variables | CLI cannot connect to the API |
+| `promptDocumentId` on at least one column | Column config via `kantban_update_column` | No pipeline columns detected — orchestrator has nothing to process |
+| `pipeline.gates.yaml` | Repo root (generate with `kantban pipeline init`) | Gate proxy has no gate definitions — agents cannot run gates or move tickets through gate-enforced columns |
+
+### Recommended — pipeline functions but wastes tokens, creates conflicts, or misses failures
+
+| Config | Where | Without it |
+|---|---|---|
+| Firing constraints | Per-column via `kantban_create_firing_constraint` | Every eligible ticket fires an agent every scan cycle — 10 idle tickets = 10 wasted invocations per 30 seconds |
+| `agentConfig` per column | Column config via `kantban_update_column` | All columns use orchestrator defaults (concurrency 1, 10 iterations, no worktree, no advisor) — may not match intent |
+| Worktree config | `agentConfig.worktree` | Concurrent agents write to the same checkout — merge conflicts between parallel tickets |
+| Circuit breaker | Board config via `kantban_update_board` | No emergency stop when tickets pile up in the escalation column — automation continues burning tokens |
+| Transition rules | Board workflow via `kantban_set_transition_rules` | Agents can move tickets to any column — no enforced flow |
+| WIP limits | Column config via `kantban_update_column` | Columns accumulate unlimited tickets — upstream columns flood downstream |
+| `settings.budget` | `pipeline.gates.yaml` under `settings` | No token budget cap — pipeline runs until manually stopped or tokens exhaust at the API level |
+
+### Optional — enhances the pipeline for specific needs
+
+| Config | Where | What it adds |
+|---|---|---|
+| `advisor` | `agentConfig.advisor` | Post-failure recovery: retry with feedback, escalate model, relax with debt, split ticket, escalate to human |
+| `model_routing` | `agentConfig.model_routing` | Start cheap (Sonnet), escalate to expensive (Opus) only when stuck |
+| `stuck_detection` | `agentConfig.stuck_detection` | Catches spinning agents that create activity without progress — saves 20–100K+ tokens per stuck ticket |
+| `checkpoint` | `agentConfig.checkpoint` | Resume loops after crash — without it, crashed loops restart from iteration 0 |
+| `run_memory` | `agentConfig.run_memory` | Cross-agent knowledge sharing — agents learn from each other's failures and discoveries |
+| `lookahead_column_id` | `agentConfig.lookahead_column_id` | Downstream column prompt injected as acceptance criteria — agents build toward what the next column will check |
+| Evaluator columns | Column type `evaluator` via `kantban_update_column` | Adversarial QA gate with structured verdict (blocker/warning/nit findings) |
+| Tool restrictions | `agentConfig.allowed_tools` / `disallowed_tools` / `builtin_tools` | Lock down what agents can do — read-only reviewers, MCP-only agents, targeted whitelists |
+| `settings.pricing` | `pipeline.gates.yaml` under `settings` | Dollar cost estimates in the shutdown report |
+| Column `goal` | Column config via `kantban_update_column` | Free-text guidance alongside the prompt doc — column-specific instructions without a separate document |
+
+Full details for each: [reference/pipeline-cli.md](reference/pipeline-cli.md) (agentConfig table, gates, gate proxy, three-loop architecture), [reference/firing-constraints.md](reference/firing-constraints.md) (constraint subjects and operators), [reference/pipeline-templates.md](reference/pipeline-templates.md) (adversarial-pipeline template configures all of the above).
+
+---
+
+## 8. Scheduling
 
 KantBan workflows benefit from recurring automation. When a user wants something to happen on a schedule, use `CronCreate`.
 
@@ -205,7 +248,7 @@ When the user runs a standup, health check, or pipeline template manually, offer
 
 ---
 
-## 8. Token Discipline
+## 9. Token Discipline
 
 The board can contain a lot of data. Don't pull it all into context.
 
@@ -220,7 +263,7 @@ The board can contain a lot of data. Don't pull it all into context.
 
 ---
 
-## 9. Available Commands
+## 10. Available Commands
 
 These slash commands are built into this skill:
 
@@ -238,7 +281,7 @@ Commands trigger the corresponding flows described in this skill. For example, `
 
 ---
 
-## 10. MCP Tool Reference
+## 11. MCP Tool Reference
 
 All tools are prefixed with `kantban:` when scoped to this MCP server.
 
@@ -284,7 +327,7 @@ All tools are prefixed with `kantban:` when scoped to this MCP server.
 
 ---
 
-## 11. References
+## 12. References
 
 Detailed guidance lives in the reference files:
 
@@ -301,7 +344,7 @@ Detailed guidance lives in the reference files:
 
 ---
 
-## 12. Configuration
+## 13. Configuration
 
 User configuration lives in their CLAUDE.md under `## KantBan Plugin Configuration`. The skill reads this on activation.
 
@@ -316,7 +359,7 @@ CLAUDE.md settings always override skill defaults. If a user has configured some
 
 ---
 
-## 13. Session Summary Protocol
+## 14. Session Summary Protocol
 
 Before a session ends (user says goodbye, asks for a summary, or goes idle), perform a brief wrap-up:
 
