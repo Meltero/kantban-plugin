@@ -620,20 +620,21 @@ Pipeline-wide outer loop. Fires when systemic problems accumulate. Max 3 invocat
 
 ## Prompt Composer
 
-Token-budgeted prompt assembly. 12 sections in order:
+Token-budgeted prompt assembly. 13 sections in order:
 
-1. **System preamble** (800 tokens) -- identity, iteration N/M, tools, rules, worktree instructions
-2. **Signals** -- ticket + column guardrails
-3. **Previous gate results** (500 tokens) -- PASS/FAIL per gate with error snippets
-4. **Rejection elevation** (500 tokens) -- previous evaluator findings
-5. **Column prompt document** -- NEVER truncated
-6. **Lookahead** (1000 tokens) -- downstream column criteria
-7. **Run memory** (1000 tokens) -- cross-agent discoveries
-8. **Ticket details** (1500 tokens) -- title, description, fields, links, history
-9. **Comments** (2000 tokens) -- windowed: pinned always full, last 3 full, older first-line only
-10. **Transition rules** (500 tokens)
-11. **Linked documents** (2000 tokens)
-12. **Metadata** (200 tokens) -- iteration, project ID, tool prefix, column name, goal
+1. **System preamble** (800 tokens) -- identity, iteration N/M, tools, rules
+2. **Worktree context** -- git merge instructions (if worktree.enabled)
+3. **Signals** -- ticket + column guardrails (unbounded)
+4. **Previous gate results** (500 tokens) -- PASS/FAIL per gate with error snippets
+5. **Rejection elevation** (500 tokens) -- previous evaluator findings
+6. **Column prompt document** -- NEVER truncated
+7. **Lookahead** (1000 tokens) -- downstream column criteria
+8. **Run memory** (1000 tokens) -- cross-agent discoveries
+9. **Ticket details** (1500 tokens) -- title, description, fields, links, transition history (1000 sub-budget)
+10. **Comments** (2000 tokens) -- windowed: pinned always full, last 3 full, older first-line only
+11. **Transition rules** (500 tokens) + dependency requirements (500 tokens)
+12. **Linked documents** (2000 tokens)
+13. **Metadata** (200 tokens) -- iteration, project ID, tool prefix, column name, goal
 
 ---
 

@@ -214,7 +214,7 @@ When a user is setting up or modifying a pipeline, surface these configuration l
 | `settings.pricing` | `pipeline.gates.yaml` under `settings` | Dollar cost estimates in the shutdown report |
 | Column `goal` | Column config via `kantban_update_column` | Free-text guidance alongside the prompt doc — column-specific instructions without a separate document |
 
-Full details for each: [reference/pipeline-cli.md](reference/pipeline-cli.md) (agentConfig table, gates, gate proxy, three-loop architecture), [reference/firing-constraints.md](reference/firing-constraints.md) (constraint subjects and operators), [reference/pipeline-templates.md](reference/pipeline-templates.md) (adversarial-pipeline template configures all of the above).
+Full details for each: [reference/pipeline-cli.md](reference/pipeline-cli.md) (agentConfig table, gates, gate proxy, three-loop architecture), [reference/firing-constraints.md](reference/firing-constraints.md) (constraint subjects and operators), [reference/pipeline-templates.md](reference/pipeline-templates.md) (adversarial-pipeline template configures all of the above). For debugging pipeline behavior or understanding internal flows: [reference/pipeline-architecture.md](reference/pipeline-architecture.md).
 
 ---
 
@@ -340,6 +340,7 @@ Detailed guidance lives in the reference files:
 | [reference/pipeline-templates.md](reference/pipeline-templates.md) | Built-in and user-defined pipeline templates, how to run them |
 | [reference/firing-constraints.md](reference/firing-constraints.md) | Pre-fire gates on pipeline columns — subject types, operators, patterns, and MCP tools |
 | [reference/pipeline-cli.md](reference/pipeline-cli.md) | CLI orchestrator — installation, pipeline command, flags, constraint enforcement, lifecycle, gate system, three-loop architecture, evaluator columns, advisor, replanner |
+| [reference/pipeline-architecture.md](reference/pipeline-architecture.md) | Pipeline internals — every component flow, decision path, and data structure verified against source. Use for debugging stuck agents, understanding cost drivers, or tracing orchestrator behavior |
 | [reference/configuration.md](reference/configuration.md) | CLAUDE.md override knobs and environment variables |
 
 ---
