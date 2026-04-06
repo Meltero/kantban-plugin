@@ -1,6 +1,6 @@
 # Pipeline CLI Reference
 
-The KantBan CLI (`kantban-cli`) runs a pipeline orchestrator that spawns Claude Code agents (`claude -p`) to process tickets on pipeline columns. Firing constraints are enforced before any agent is spawned.
+The KantBan CLI (`kantban-cli`) runs a pipeline orchestrator that spawns AI agent processes to work on tickets across pipeline columns. Three providers are supported: Claude Code (`claude`), Codex CLI (`codex`), and Gemini CLI (`gemini`). Firing constraints are enforced before any agent is spawned. See [pipeline-providers.md](pipeline-providers.md) for provider capabilities and configuration.
 
 ---
 
@@ -48,6 +48,7 @@ kantban pipeline <board-id> [flags]
 | `--model <model>` | per-column | Override `agentConfig.model_preference` for all columns |
 | `--concurrency <n>` | per-column | Override `agentConfig.concurrency` for all columns |
 | `--log-retention <days>` | 7 | Days to keep log files |
+| `--provider <id>` | `claude` | Override default provider for all columns (`claude`, `codex`, `gemini`) |
 | `--yes`, `-y` | off | Skip safety confirmation prompt |
 
 CLI flags take precedence over per-column `agentConfig` values.
@@ -58,7 +59,7 @@ CLI flags take precedence over per-column `agentConfig` values.
 kantban pipeline stop <board-id>
 ```
 
-Sends SIGTERM to a running persistent pipeline and its child `claude -p` processes.
+Sends SIGTERM to a running persistent pipeline and its child agent processes.
 
 ---
 
@@ -110,7 +111,7 @@ Questions to surface:
 
 ### 3. Preventing Token Waste
 
-Each `claude -p` invocation consumes tokens. Without constraints, the pipeline fires agents on every scan cycle for every ticket in every pipeline column — even when work cannot proceed.
+Each agent invocation consumes tokens. Without constraints, the pipeline fires agents on every scan cycle for every ticket in every pipeline column — even when work cannot proceed.
 
 Relevant capabilities:
 
@@ -135,7 +136,7 @@ A column becomes a pipeline column when it has a linked prompt document and its 
 
 ### promptDocumentId
 
-The document whose content becomes the system prompt for `claude -p`. Create a document first, then link it:
+The document whose content becomes the system prompt for the agent invocation. Create a document first, then link it:
 
 ```
 kantban_create_document(projectId, spaceId, title: "Design Review Prompt", content: "...")
@@ -167,11 +168,12 @@ kantban_update_column(projectId, columnId, agentConfig: { ... })
 | Field | Type | Default | Description |
 |---|---|---|---|
 | `execution_mode` | `"kant_loop"` \| `"cron_poll"` \| `"manual"` | `"kant_loop"` | How the column processes tickets |
+| `provider` | string | board default or `"claude"` | Provider for this column (`"claude"`, `"codex"`, `"gemini"`). See [pipeline-providers.md](pipeline-providers.md) |
 | `concurrency` | positive integer | `1` | Max simultaneous agent loops per column |
 | `max_iterations` | positive integer | `10` | Max Claude invocations per ticket before stopping |
 | `max_budget_usd` | positive number \| null | `null` (unlimited) | Per-ticket USD budget cap. Converted to `--max-turns` via `ceil(value × 10)` (e.g. $1.00 = 10 turns) |
 | `gutter_threshold` | positive integer | `3` | Consecutive iterations with no progress before declaring stalled |
-| `model_preference` | string | none (Claude default) | Model ID passed to `claude -p --model` (e.g. `"claude-sonnet-4-6"`) |
+| `model_preference` | string | none (provider default) | Model ID or tier name (`"fast"`, `"default"`, `"thorough"`). Tier names resolve to provider-specific models. Raw IDs also accepted (e.g. `"claude-sonnet-4-6"`, `"gemini-2.5-flash"`) |
 | `poll_interval_seconds` | positive integer | — | Interval for `cron_poll` execution mode |
 | `worktree.enabled` | boolean | `false` | Spawn each agent in an isolated git worktree |
 | `worktree.on_move` | `"keep"` \| `"merge"` \| `"cleanup"` | — | What happens to the worktree when a ticket moves between columns |
@@ -202,9 +204,11 @@ Control which tools are available to a column's pipeline agent. Three fields wor
 
 - **`allowed_tools`** — Whitelist. Only these tools (MCP + built-in) are available. If set, overrides the default full toolset.
 - **`disallowed_tools`** — Blacklist. These specific tools are blocked. Applied on top of the allowed set.
-- **`builtin_tools`** — Controls Claude's built-in tools via the `--tools` CLI flag. Space-separated tool names. Set to `""` (empty string) to strip all built-in tools. Omit entirely for full defaults.
+- **`builtin_tools`** — Controls the provider's built-in tools. Space-separated tool names. Set to `""` (empty string) to strip all built-in tools. Omit entirely for full defaults.
 
-**No restrictions (default):** If none of the three fields are set, the agent has access to all tools — both Claude built-ins and all MCP tools. This is the default behavior when tool restriction fields are absent.
+**No restrictions (default):** If none of the three fields are set, the agent has access to all tools — both built-ins and all MCP tools. This is the default behavior when tool restriction fields are absent.
+
+**Provider enforcement varies.** Claude enforces all three fields via CLI flags. Gemini enforces via hooks. Codex degrades to `--sandbox read-only` for denylist items and has no allowlist enforcement. See [pipeline-providers.md](pipeline-providers.md) for the full capability matrix.
 
 **Examples:**
 
@@ -311,7 +315,7 @@ Constraints are cached in memory and refreshed:
 The orchestrator runs a multi-iteration loop per ticket:
 1. Fetch ticket and column context
 2. Compose prompt from prompt document + goal + context
-3. Invoke `claude -p` with MCP tools available
+3. Invoke the provider's agent CLI with MCP tools available
 4. Check for progress via fingerprint diff (comments, field values, column change)
 5. If no progress for `gutter_threshold` consecutive iterations → stall and stop
 6. If ticket moves to a different column → success, stop
@@ -352,7 +356,7 @@ Before spawning, the orchestrator checks if a ticket has unresolved dependency b
 
 The orchestrator detects when a Claude agent makes no meaningful progress:
 
-- After each `claude -p` invocation, a fingerprint is captured (comment count, field value count, column)
+- After each agent invocation, a fingerprint is captured (comment count, field value count, column)
 - If the fingerprint matches the previous iteration → gutter count increments
 - When gutter count reaches `gutter_threshold` → loop stops with reason `stalled`
 - A signal is created on the ticket so future agents know about the stall
@@ -406,13 +410,13 @@ The orchestrator tracks ticket state via fingerprints:
 
 ## MCP Configuration
 
-The orchestrator generates a stable MCP config file per board:
+The orchestrator generates MCP config per board, formatted for the active provider:
 
-```
-~/.kantban/pipelines/<board-id>/mcp-config.json
-```
+- **Claude:** JSON file at `~/.kantban/pipelines/<board-id>/mcp-config.json`, passed via `--mcp-config`
+- **Codex:** Inline `-c` CLI flags (one per server property)
+- **Gemini:** `.gemini/settings.json` in a session directory, discovered via `cwd`
 
-This config is passed to every `claude -p` invocation via `--mcp-config`. It connects the spawned agent to the KantBan MCP server with the same API token.
+All formats connect the spawned agent to the KantBan MCP server with the same API token. See [pipeline-providers.md](pipeline-providers.md) for details.
 
 ---
 
@@ -478,7 +482,7 @@ Falls back to 30-second polling if WebSocket disconnects.
 
 ## Three-Loop Architecture
 
-**Inner loop (Ralph Loop):** One ticket, one column. Iterates Claude Code invocations until the ticket moves, stalls, hits max iterations, errors, or is deleted. Gate deltas drive gutter detection. Checkpoints persist state for crash recovery.
+**Inner loop (Ralph Loop):** One ticket, one column. Iterates agent invocations (via the column's provider) until the ticket moves, stalls, hits max iterations, errors, or is deleted. Gate deltas drive gutter detection. Checkpoints persist state for crash recovery.
 
 **Middle loop (Orchestrator):** Manages all active Ralph Loops across all pipeline columns. 30-second scan cycle. Handles concurrency, blocker deferral, firing constraints, advisor recovery on failure exits, evaluator verdict handling, queue drain.
 
@@ -681,11 +685,13 @@ Escalation ladder for stuck agents. Configure per-column:
 ```json
 {
   "model_routing": {
-    "initial": "claude-sonnet-4-6",
-    "escalation": ["claude-opus-4-6"],
+    "initial": "fast",
+    "escalation": ["default", "thorough"],
     "escalate_after": 2
   }
 }
 ```
+
+Tier names (`fast`, `default`, `thorough`) are resolved to provider-specific model IDs at runtime — the same config works across Claude, Codex, and Gemini. Raw model IDs (e.g. `"claude-sonnet-4-6"`, `"gemini-2.5-pro"`) also work but tie the config to one provider.
 
 The agent starts with `initial`. After `escalate_after` advisor RETRY_DIFFERENT_MODEL calls, the next model in `escalation` is used. Model overrides from routing take precedence over `model_preference`.

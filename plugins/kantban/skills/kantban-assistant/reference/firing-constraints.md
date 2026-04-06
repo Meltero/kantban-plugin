@@ -1,6 +1,6 @@
 # Firing Constraints Reference
 
-Firing constraints are pre-fire gates on pipeline columns. They are evaluated before KantBan spawns a Claude agent instance (`claude -p`) to process a ticket. If any enabled constraint fails, the column does not fire — no agent is spawned.
+Firing constraints are pre-fire gates on pipeline columns. They are evaluated before KantBan spawns an agent (Claude, Codex, or Gemini) to process a ticket. If any enabled constraint fails, the column does not fire — no agent is spawned.
 
 ---
 
@@ -208,7 +208,7 @@ Plain English: "Only fire if no tickets are in the circuit breaker. Alert me if 
 | | Firing Constraints | Transition Rules |
 |---|---|---|
 | **Gates** | Whether a column spawns an agent | Whether a ticket can move between columns |
-| **Evaluated when** | Before `claude -p` is invoked | When `kantban_move_ticket` is called |
+| **Evaluated when** | Before an agent is spawned | When `kantban_move_ticket` is called |
 | **Applies to** | Agent execution | Ticket movement |
 | **Scope** | Column-level or ticket-level | Ticket-level |
 | **Fail behavior** | Fail-open (transient errors pass) | Fail-closed (errors block the move) |

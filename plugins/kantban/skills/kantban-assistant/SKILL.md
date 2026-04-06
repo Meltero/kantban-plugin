@@ -186,6 +186,7 @@ When a user is setting up or modifying a pipeline, surface these configuration l
 | `KANTBAN_API_URL` + `KANTBAN_API_TOKEN` | Environment variables | CLI cannot connect to the API |
 | `promptDocumentId` on at least one column | Column config via `kantban_update_column` | No pipeline columns detected — orchestrator has nothing to process |
 | `pipeline.gates.yaml` | Repo root (generate with `kantban pipeline init`) | Gate proxy has no gate definitions — agents cannot run gates or move tickets through gate-enforced columns |
+| Provider CLI installed | `claude`, `codex`, or `gemini` on PATH | Preflight fails for columns using that provider |
 
 ### Recommended — pipeline functions but wastes tokens, creates conflicts, or misses failures
 
@@ -193,6 +194,7 @@ When a user is setting up or modifying a pipeline, surface these configuration l
 |---|---|---|
 | Firing constraints | Per-column via `kantban_create_firing_constraint` | Every eligible ticket fires an agent every scan cycle — 10 idle tickets = 10 wasted invocations per 30 seconds |
 | `agentConfig` per column | Column config via `kantban_update_column` | All columns use orchestrator defaults (concurrency 1, 10 iterations, no worktree, no advisor) — may not match intent |
+| Provider selection | `--provider` flag, `agentConfig.provider`, or board default | All columns use Claude Code — other installed providers (Codex, Gemini) are ignored |
 | Worktree config | `agentConfig.worktree` | Concurrent agents write to the same checkout — merge conflicts between parallel tickets |
 | Circuit breaker | Board config via `kantban_update_board` | No emergency stop when tickets pile up in the escalation column — automation continues burning tokens |
 | Transition rules | Board workflow via `kantban_set_transition_rules` | Agents can move tickets to any column — no enforced flow |
@@ -210,11 +212,11 @@ When a user is setting up or modifying a pipeline, surface these configuration l
 | `run_memory` | `agentConfig.run_memory` | Cross-agent knowledge sharing — agents learn from each other's failures and discoveries |
 | `lookahead_column_id` | `agentConfig.lookahead_column_id` | Downstream column prompt injected as acceptance criteria — agents build toward what the next column will check |
 | Evaluator columns | Column type `evaluator` via `kantban_update_column` | Adversarial QA gate with structured verdict (blocker/warning/nit findings) |
-| Tool restrictions | `agentConfig.allowed_tools` / `disallowed_tools` / `builtin_tools` | Lock down what agents can do — read-only reviewers, MCP-only agents, targeted whitelists |
+| Tool restrictions | `agentConfig.allowed_tools` / `disallowed_tools` / `builtin_tools` | Lock down what agents can do — read-only reviewers, MCP-only agents, targeted whitelists. Enforcement varies by provider (see [reference/pipeline-providers.md](reference/pipeline-providers.md)) |
 | `settings.pricing` | `pipeline.gates.yaml` under `settings` | Dollar cost estimates in the shutdown report |
 | Column `goal` | Column config via `kantban_update_column` | Free-text guidance alongside the prompt doc — column-specific instructions without a separate document |
 
-Full details for each: [reference/pipeline-cli.md](reference/pipeline-cli.md) (agentConfig table, gates, gate proxy, three-loop architecture), [reference/firing-constraints.md](reference/firing-constraints.md) (constraint subjects and operators), [reference/pipeline-templates.md](reference/pipeline-templates.md) (adversarial-pipeline template configures all of the above). For debugging pipeline behavior or understanding internal flows: [reference/pipeline-architecture.md](reference/pipeline-architecture.md).
+Full details for each: [reference/pipeline-cli.md](reference/pipeline-cli.md) (agentConfig table, gates, gate proxy, three-loop architecture), [reference/pipeline-providers.md](reference/pipeline-providers.md) (provider capabilities, degradation, MCP config strategies, model tiers), [reference/firing-constraints.md](reference/firing-constraints.md) (constraint subjects and operators), [reference/pipeline-templates.md](reference/pipeline-templates.md) (adversarial-pipeline template configures all of the above). For debugging pipeline behavior or understanding internal flows: [reference/pipeline-architecture.md](reference/pipeline-architecture.md).
 
 ---
 
@@ -340,6 +342,7 @@ Detailed guidance lives in the reference files:
 | [reference/pipeline-templates.md](reference/pipeline-templates.md) | Built-in and user-defined pipeline templates, how to run them |
 | [reference/firing-constraints.md](reference/firing-constraints.md) | Pre-fire gates on pipeline columns — subject types, operators, patterns, and MCP tools |
 | [reference/pipeline-cli.md](reference/pipeline-cli.md) | CLI orchestrator — installation, pipeline command, flags, constraint enforcement, lifecycle, gate system, three-loop architecture, evaluator columns, advisor, replanner |
+| [reference/pipeline-providers.md](reference/pipeline-providers.md) | Multi-provider support — Claude/Codex/Gemini capabilities, degradation behavior, MCP config strategies, model tiers, tool scoping differences, selection and configuration |
 | [reference/pipeline-architecture.md](reference/pipeline-architecture.md) | Pipeline internals — every component flow, decision path, and data structure verified against source. Use for debugging stuck agents, understanding cost drivers, or tracing orchestrator behavior |
 | [reference/configuration.md](reference/configuration.md) | CLAUDE.md override knobs and environment variables |
 

@@ -7,11 +7,13 @@ All function names, field names, parameters, and flow orders match the actual im
 1. SYSTEM OVERVIEW
 ==================
 
-The pipeline CLI (`kantban pipeline <board-id>`) orchestrates autonomous Claude Code agents
-that process kanban tickets through board columns. Three nested control loops govern execution:
+The pipeline CLI (`kantban pipeline <board-id>`) orchestrates autonomous AI agents (Claude Code,
+Codex CLI, or Gemini CLI) that process kanban tickets through board columns. Provider selection
+is per-column via agentConfig.provider (see pipeline-providers.md for capabilities).
+Three nested control loops govern execution:
 
   Inner Loop (RalphLoop.run)
-    Agent works in a Claude -p subprocess → calls run_gates MCP tool → sees failures →
+    Agent works in a provider subprocess → calls run_gates MCP tool → sees failures →
     fixes code → calls move_ticket → gate proxy intercepts → runs gates → pass/fail →
     agent retries or ticket moves.
 
@@ -34,7 +36,7 @@ Orchestrator: packages/cli/src/lib/orchestrator.ts:PipelineOrchestrator
 
 Inner Loop — RalphLoop (ralph-loop.ts)
   One ticket, one column. Iterates up to maxIterations.
-  Each iteration: compose prompt → invoke Claude -p → check fingerprint for move →
+  Each iteration: compose prompt → invoke provider agent → check fingerprint for move →
   run post-iteration gates → compute gutter delta → stuck detection → checkpoint.
   Exit reasons: moved | max_iterations | stalled | stopped | error | deleted
 
@@ -754,10 +756,10 @@ File: packages/cli/src/lib/ralph-loop.ts:RalphLoop.run()
 
     if stopped → return 'stopped'
 
-    invoke Claude -p subprocess:
+    invoke provider agent subprocess:
       emit onSessionStart
-      invokeClaudeP(prompt, {mcpConfigPath, model, maxBudgetUsd, worktree,
-                             onStreamEvent, toolRestrictions...})
+      provider.invoke(agentRequest) — prompt, model, mcpConfig, toolRestrictions,
+                                       maxTurns, workingDirectory, onStreamEvent
       accumulate tokens/toolCalls/duration
       emit onSessionEnd
 
@@ -1070,21 +1072,22 @@ File: packages/cli/src/commands/pipeline.ts:invokeClaudeP()
 
   max-turns calculation: if maxBudgetUsd set → max(1, ceil(maxBudgetUsd * 10))
 
-  spawn('claude', args, { stdio: ['pipe', 'pipe', 'pipe'] })
-  track in activeChildProcesses set
-  append child PID to manifest file
+  Provider.invoke(agentRequest):
+    spawn provider binary (claude/codex/gemini) with provider-specific args
+    track in activeChildProcesses set
+    append child PID to manifest file
 
-  StreamJsonParser on stdout:
-    count tool_use blocks in 'assistant' events
-    capture 'result' events for token usage + final output
+    Provider-specific stream parser on stdout:
+      Claude: StreamJsonParser (stream-json format)
+      Codex: CodexJsonlParser (jsonl format)
+      Gemini: GeminiJsonlParser (jsonl format)
+    All normalize to NormalizedStreamEvent (text, tool_call, tool_result, usage, error, done)
 
-  CLAUDE_TIMEOUT_MS = 1 hour
-    SIGTERM after timeout → SIGKILL escalation after 5s
+    Timeout: 1 hour per provider
+      SIGTERM after timeout → SIGKILL escalation after 5s
 
-  On close: flush parser, resolve with {exitCode, output, toolCallCount, tokensIn, tokensOut}
+  On close: flush parser, resolve with AgentResult {exitCode, output, toolCallCount, usage, durationMs, degradedCapabilities}
   On error: resolve with exitCode 1
-
-  stdin immediately closed (prompt passed via -p flag)
 
 
 0.23 RUN MEMORY
@@ -1228,7 +1231,7 @@ Orphan cleanup at startup (cleanupOrphanedProcesses):
   Kill stale orchestrator from PID file
   Kill children from PID manifest
   Kill stale reaper from reaper.pid
-  Kill orphaned 'claude -p' processes matching board's MCP config directory
+  Kill orphaned agent processes (claude/codex/gemini) matching board's MCP config directory
 
 Watchdog reaper (reaper.ts):
   Spawned as detached child. Polls orchestrator PID. If dead:
