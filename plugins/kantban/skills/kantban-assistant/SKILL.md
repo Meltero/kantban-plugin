@@ -213,6 +213,8 @@ When a user is setting up or modifying a pipeline, surface these configuration l
 | `lookahead_column_id` | `agentConfig.lookahead_column_id` | Downstream column prompt injected as acceptance criteria — agents build toward what the next column will check |
 | Evaluator columns | Column type `evaluator` via `kantban_update_column` | Adversarial QA gate with structured verdict (blocker/warning/nit findings) |
 | Tool restrictions | `agentConfig.allowed_tools` / `disallowed_tools` / `builtin_tools` | Lock down what agents can do — read-only reviewers, MCP-only agents, targeted whitelists. Enforcement varies by provider (see [reference/pipeline-providers.md](reference/pipeline-providers.md)) |
+| Branch-merge re-prompt | `agentConfig.reprompt_on_branch_merged` | Detects stranded tickets whose feature branch landed on `origin/main` but were never advanced. Injects a re-prompt telling the agent to call `move_ticket` as its first action. Intended for Merge-style columns; pair with `max_reprompt_attempts` (default 2) |
+| Gutter-reset cap | `agentConfig.max_gutter_resets_per_transit` | Stops advisor retry loops from churning indefinitely on SR2-style stalls. Default `2`; `0` disables retries entirely. Emits `agent_stalled_exhausted` when hit |
 | `settings.pricing` | `pipeline.gates.yaml` under `settings` | Dollar cost estimates in the shutdown report |
 | Column `goal` | Column config via `kantban_update_column` | Free-text guidance alongside the prompt doc — column-specific instructions without a separate document |
 

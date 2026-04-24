@@ -138,7 +138,7 @@ codex exec --json --dangerously-bypass-approvals-and-sandbox \
 
 **Known issue:** MCP tool calls are cancelled on Codex CLI 0.117.0+ (OpenAI issue #16685). Mitigated by setting `CODEX_FEATURE_TOOL_CALL_MCP_ELICITATION=false`.
 
-**Degrades:** `toolAllowlist`, `toolDenylist`, `builtinToolStripping` (maps to sandbox), `maxTurns`.
+**Degrades:** `toolAllowlist`, `toolDenylistAdvisory` (emitted only when the denylist contains a writing tool — triggers `--sandbox read-only`), `builtinToolStripping` (maps to sandbox), `maxTurns`.
 
 ---
 

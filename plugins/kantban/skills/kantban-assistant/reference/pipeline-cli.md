@@ -27,6 +27,8 @@ Published on npm as **`kantban-cli`**. Requires Node.js 22+.
 | `KANTBAN_API_URL` | Yes | API base URL (e.g. `https://api.kantban.app` or `http://localhost:3000`) |
 | `KANTBAN_API_TOKEN` | Yes | API token starting with `cb_` — generate from account settings |
 | `KANTBAN_PROJECT_ID` | No | Explicit project ID. If omitted, auto-resolved from the board |
+| `GATE_PROXY_HANDLER_TIMEOUT_MS` | No | Per-request timeout (ms) for the gate-proxy MCP handler. Default `1800000` (30 min). Raise if your gate commands legitimately take longer. |
+| `ACTIVE_LOOP_ZOMBIE_TTL_MS` | No | Watchdog TTL (ms) for loops whose promise never settled. Default `10800000` (3 h). Lower to kill hung agents faster; raise for genuinely long-running columns. |
 
 ---
 
@@ -195,6 +197,9 @@ kantban_update_column(projectId, columnId, agentConfig: { ... })
 | `stuck_detection.enabled` | boolean | — | Enable periodic trajectory classification |
 | `stuck_detection.first_check` | positive integer | `3` | First iteration to check |
 | `stuck_detection.interval` | positive integer | `2` | Check every N iterations after first_check |
+| `max_gutter_resets_per_transit` | non-negative integer | `2` | Cap on advisor `RETRY_WITH_FEEDBACK` / `RETRY_DIFFERENT_MODEL` cycles per ticket transit. When exceeded the loop emits an `agent_stalled_exhausted` signal and stops retrying instead of re-spawning indefinitely. `0` disables retries entirely. |
+| `reprompt_on_branch_merged` | boolean | `false` | Opt-in. Detects when the ticket's feature branch has landed on `origin/main` but the ticket was never advanced; injects a "Branch Merge Detected" prompt section instructing the agent to call `move_ticket` as its first action. Intended for Merge-style columns. |
+| `max_reprompt_attempts` | non-negative integer | `2` | Cap on branch-merge re-prompts per ticket. Only meaningful when `reprompt_on_branch_merged` is true. |
 
 Set `agentConfig` to `null` to clear all overrides and use orchestrator defaults.
 
@@ -412,9 +417,11 @@ The orchestrator tracks ticket state via fingerprints:
 
 The orchestrator generates MCP config per board, formatted for the active provider:
 
-- **Claude:** JSON file at `~/.kantban/pipelines/<board-id>/mcp-config.json`, passed via `--mcp-config`
+- **Claude:** JSON file at `~/.kantban/pipelines/<board-id>/<pid>/mcp-config.json`, passed via `--mcp-config`
 - **Codex:** Inline `-c` CLI flags (one per server property)
 - **Gemini:** `.gemini/settings.json` in a session directory, discovered via `cwd`
+
+The Claude mcp-config path is **namespaced per orchestrator PID**: two orchestrators on the same board no longer clobber each other's config. At startup an orphan reaper sweeps `~/.kantban/pipelines/<board-id>/` for PID dirs whose owning process is dead (checked via `kill -0`) and removes them. Reads also self-heal — an `ENOENT` on re-read triggers a rewrite from the cached in-memory config instead of failing the iteration.
 
 All formats connect the spawned agent to the KantBan MCP server with the same API token. See [pipeline-providers.md](pipeline-providers.md) for details.
 
@@ -459,8 +466,23 @@ onLoopComplete(ticketId, result)
   → Remove from active tracking
   → Drain queue (spawn next queued ticket if constraints pass)
   → Write completion comment on ticket
-  → Create signal on ticket for stalled/error exits
+  → Emit harness signal on stalled/error/exhausted/max_iterations exits
 ```
+
+### Harness Signals
+
+Harness-authored status is surfaced as structured signals (queryable via `kantban_list_signals`), not free-form comments. Every signal's content begins with the `@harness:` prefix followed by a JSON envelope `{ kind, payload }`. Kinds currently emitted:
+
+| Kind | When |
+|---|---|
+| `agent_stalled` | Loop exited `stalled` (gutter threshold hit) — a normal retry path |
+| `agent_stalled_exhausted` | `max_gutter_resets_per_transit` cap exceeded — terminal, needs human review |
+| `agent_max_iterations` | Loop exited at `max_iterations` without moving the ticket |
+| `agent_error` | Uncaught error inside the loop |
+| `advisor_action` | Advisor invoked with action `RETRY_*` / `RELAX_WITH_DEBT` / `SPLIT_TICKET` / `ESCALATE` |
+| `dispatch_deferred` | Ticket dispatch skipped due to unresolved blockers or failing firing constraints — cleared by state change (ticket move, constraint pass) |
+
+Agents reading ticket context never see historical harness comments — the prompt composer filters any comment whose prose starts with a known harness prefix and replaces them with an `[N prior harness status comment(s) suppressed from context]` marker.
 
 ---
 
@@ -536,6 +558,10 @@ settings:
 ### Gate Proxy
 
 Intercepts `move_ticket` and `complete_task` MCP calls from the agent. Before forwarding, resolves gates for the current column, filters any waived gates (set by advisor RELAX_WITH_DEBT), runs remaining gates. Required gate failure returns `GATE_FAILURE` with results and a hint; agent must fix before retrying the move.
+
+**Done-type bypass.** Moves whose target column is `type=done` skip gate execution by default — done columns are post-work cleanup, and running source-column gates there can strand merge-completed tickets against a transiently-broken main. The bypass is **disabled** when `pipeline.gates.yaml` has an explicit `columns.<DoneColumnName>:` override. A startup warning surfaces any done-type column with such an override so the operator sees the disabled bypass.
+
+**Structured error log.** On gate failure, a `[gate-error]` line is emitted per failing gate: `ticket=`, `column=`, `gate=`, `exit_code=`, `errno=`, `syscall=`, `stderr=` (first 500 bytes of stderr tail). Grep logs by gate name or error class (e.g. `errno=ENOENT` → binary not on PATH).
 
 ### Gate Snapshots
 
@@ -639,6 +665,10 @@ Token-budgeted prompt assembly. 13 sections in order:
 11. **Transition rules** (500 tokens) + dependency requirements (500 tokens)
 12. **Linked documents** (2000 tokens)
 13. **Metadata** (200 tokens) -- iteration, project ID, tool prefix, column name, goal
+
+**Branch merge detection** (injected between sections 4 and 5, opt-in): when `reprompt_on_branch_merged` is enabled and the ralph-loop confirms HEAD is an ancestor of `origin/main` via a merge commit postdating iteration start, an extra section tells the agent the ticket is still in its source column and instructs it to call `move_ticket` as its first action. Suppresses after `max_reprompt_attempts` re-prompts for a given ticket.
+
+**Harness comment filtering** (section 10): comments authored by the harness (prefixes like `ADVISOR:`, `Pipeline agent stalled`, `Needs human review`) are filtered out of the windowed comment history before composition, so agents see only real human and AI prose. A single `[N prior harness status comment(s) suppressed from context]` marker is appended when any were filtered.
 
 ---
 
